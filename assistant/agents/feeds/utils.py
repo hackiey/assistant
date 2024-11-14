@@ -1,4 +1,5 @@
 import re
+from abc import ABC, abstractmethod
 from datetime import datetime
 
 
@@ -10,7 +11,7 @@ author: {author} / publish time: {publish_date}
 {content}'''
 
 
-class News:
+class FeedsArticle:
     default_format_keys = ['title', 'author', 'publish_date', 'content', 'comments']
 
     def __init__(self, 
@@ -20,7 +21,7 @@ class News:
                  link: str = None,
                  publish_time: int = None,
                  content: str = None, 
-                 comments: list['NewsComment'] = None
+                 comments: list['FeedsComment'] = None
         ) -> None:
         self.id = id
 
@@ -85,14 +86,14 @@ comment_template = '''author: {author} / publish time: {publish_time}
 
 {content}'''
 
-class NewsComment:
+class FeedsComment:
     default_format_keys = ['author', 'publish_date', 'content', 'replies']
 
     def __init__(self, 
                  author: str = None, 
                  publish_time: int = None, 
                  content: str = None,
-                 replies: list['NewsComment'] = None
+                 replies: list['FeedsComment'] = None
         ) -> None:
 
         self.author = author
@@ -108,3 +109,9 @@ class NewsComment:
         )
 
         return content
+
+
+class Feeds(ABC):
+    @abstractmethod
+    def get_feeds(self):
+        pass

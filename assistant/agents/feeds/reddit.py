@@ -1,7 +1,7 @@
 import praw
 from datetime import datetime
 
-from assistant.agents.news.utils import News, NewsComment
+from assistant.agents.feeds.utils import Feeds, FeedsArticle, FeedsComment
 
 
 reddit_content_template = '''subreddit: r/{subreddit}
@@ -18,7 +18,7 @@ reddit_comment_template = '''@{author} {reply_info} / publish date: {publish_dat
 {content}'''
 
 
-class RedditNews(News):
+class RedditArticle(FeedsArticle):
     def __init__(self,
                  submission, 
                  comments_limit: int = 10,
@@ -88,7 +88,7 @@ class RedditNews(News):
         return f"[{self.submission.subreddit}] {self.submission.title} {self.link}\n\n{self.content}"
 
 
-class RedditComment(NewsComment):
+class RedditComment(FeedsComment):
     def __init__(self,
                  comment: praw.models.Comment,
                  replies: list['RedditComment'] = None
@@ -112,42 +112,31 @@ class RedditComment(NewsComment):
         self.content = self.pack_comment(template)
 
 
-class Reddit:
-    def __init__(self, subreddit: str, config: dict):
-        self.subreddit = subreddit
-        self.config = config
+class RedditFeeds(Feeds):
+    def __init__(self, reddit_client, subreddit: dict):
+        self.subreddit = subreddit['name']
+        self.filters = subreddit['filters'] if 'filters' in subreddit else None
 
         self.comments_limit = 10
         self.replies_limit = 5
         self.replies_depth = 3
 
-        self.reddit = praw.Reddit(
-            client_id=self.config["REDDIT_CLIENT_ID"],
-            client_secret=self.config["REDDIT_CLIENT_SECRET"],
-            user_agent=f"testscript by u/{self.config['REDDIT_USERNAME']}",
-            username=self.config["REDDIT_USERNAME"],
-            password=self.config["REDDIT_PASSWORD"],
-        )
+        self.reddit_client = reddit_client
 
-    def get_hot(self, limit: int = 20):
-        for submission in self.reddit.subreddit(self.subreddit).hot(limit=limit):
+    def get_feeds(self, limit: int = 20):
+        for submission in self.reddit_client.subreddit(self.subreddit).hot(limit=limit):
             print(f"https://www.reddit.com{submission.permalink}")
-            news = RedditNews(submission)
-            print(news)
+            feeds = RedditArticle(submission)
+            print(feeds)
         
         import ipdb;ipdb.set_trace()
 
 
-if __name__ == "__main__":
-    import os
-    import dotenv
-    dotenv.load_dotenv()
-
-    reddit = Reddit("openai", {
-        "REDDIT_CLIENT_ID": os.getenv("REDDIT_CLIENT_ID"),
-        "REDDIT_CLIENT_SECRET": os.getenv("REDDIT_CLIENT_SECRET"),
-        "REDDIT_USERNAME": os.getenv("REDDIT_USERNAME"),
-        "REDDIT_PASSWORD": os.getenv("REDDIT_PASSWORD"),
-    })
-
-    reddit.get_hot(limit=2)
+def init_reddit_client(config):
+    return praw.Reddit(
+        client_id=config["client_id"],
+        client_secret=config["client_secret"],
+        user_agent=f"testscript by u/{config['username']}",
+        username=config["username"],
+        password=config["password"],
+    )
